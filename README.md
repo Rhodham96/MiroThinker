@@ -360,15 +360,24 @@ cp .env.example .env
 | Server | Description | Tools Provided | Required Environment Variables |
 |:-------|:------------|:---------------|:-------------------------------|
 | **`tool-python`** | Execution environment and file management (E2B sandbox) | `create_sandbox`, `run_command`, `run_python_code`, `upload_file_from_local_to_sandbox`, `download_file_from_sandbox_to_local`, `download_file_from_internet_to_sandbox` | `E2B_API_KEY` |
-| **`search_and_scrape_webpage`** | Google search via Serper API | `google_search` | `SERPER_API_KEY`, `SERPER_BASE_URL` |
+| **`search_and_scrape_webpage`** | Google search via Serper API (or Gemini Grounding) | `google_search` | `SERPER_API_KEY`, `SERPER_BASE_URL` (or `GOOGLE_APPLICATION_CREDENTIALS` for Gemini) |
 | **`jina_scrape_llm_summary`** | Web scraping with LLM-based information extraction | `scrape_and_extract_info` | `JINA_API_KEY`, `JINA_BASE_URL`, `SUMMARY_LLM_BASE_URL`, `SUMMARY_LLM_MODEL_NAME`, `SUMMARY_LLM_API_KEY` |
 
 **Minimal `.env` configuration example:**
 
 ```bash
 # Required for MiroThinker v1.5 and v1.0 (minimal setup)
+
+# Option 1: Using Serper (Standard)
 SERPER_API_KEY=your_serper_key
 SERPER_BASE_URL="https://google.serper.dev"
+
+# Option 2: Using Gemini with Google Search Grounding (No Serper key needed)
+# Ensure you are using the 'gemini' provider and have GCP credentials
+GOOGLE_APPLICATION_CREDENTIALS="path/to/your/gcp_credentials.json"
+# OR
+GOOGLE_API_KEY="your_google_api_key"
+
 JINA_API_KEY=your_jina_key
 JINA_BASE_URL="https://r.jina.ai"
 E2B_API_KEY=your_e2b_key
@@ -385,6 +394,8 @@ OPENAI_API_KEY=your_openai_key  # Required for running benchmark evaluations
 OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional, defaults to OpenAI's API
 ```
 
+> **💡 Gemini Support**: To use **Google Gemini** as your primary model (replacing OpenAI/Anthropic), set your LLM provider to `gemini` in the config. This also enables **Google Search Grounding** automatically, removing the need for `SERPER_API_KEY`.
+>
 > **💡 Why this is minimal**: These 3 MCP servers cover the core capabilities needed for research tasks: web search, content extraction, and code execution. All other servers are optional enhancements.
 >
 > **🤖 Summary LLM**: The `SUMMARY_LLM` can be a small model like Qwen3-14B or GPT-5-Nano. The choice has minimal impact on overall performance, use whichever is most convenient for your setup.
