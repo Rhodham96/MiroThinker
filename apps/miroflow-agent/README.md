@@ -10,7 +10,7 @@ Before running the agent, ensure you have:
 1. **Configured environment variables**: Copy `.env.example` to `.env` and fill in your API keys
    ```bash
    cp .env.example .env
-   # Edit .env with your actual API keys (SERPER_API_KEY, JINA_API_KEY, E2B_API_KEY, etc.)
+   # Edit .env with your actual API keys (GOOGLE_APPLICATION_CREDENTIALS, JINA_API_KEY, E2B_API_KEY, etc.)
    ```
 1. **Started your model server** (for MiroThinker models): See the [Serve the MiroThinker Model](../../README.md#serve-the-mirothinker-model) section
 
@@ -21,14 +21,8 @@ Before running the agent, ensure you have:
 The simplest way to test the agent is running `main.py` directly. It will execute a default task: *"What is the title of today's arxiv paper in computer science?"*
 
 ```bash
-# Using MiroThinker models (requires your own model server)
+# Using MiroThinker agents (requires your own server)
 uv run python main.py llm=qwen-3 agent=mirothinker_v1.5_keep5_max200 llm.base_url=http://localhost:61002/v1
-
-# Using Claude (requires ANTHROPIC_API_KEY in .env)
-uv run python main.py llm=claude-3-7 agent=single_agent_keep5
-
-# Using GPT-5 (requires OPENAI_API_KEY in .env)
-uv run python main.py llm=gpt-5 agent=single_agent_keep5
 ```
 
 ### Customize Your Task
@@ -60,8 +54,6 @@ uv run python main.py llm=qwen-3 agent=mirothinker_v1.5_keep5_max200 benchmark=g
 | Model | Config Name | Requirements |
 |-------|-------------|--------------|
 | MiroThinker (self-hosted) | `qwen-3` | Model server + `llm.base_url` |
-| Claude 3.7 Sonnet | `claude-3-7` | `ANTHROPIC_API_KEY` in .env |
-| GPT-5 | `gpt-5` | `OPENAI_API_KEY` in .env |
 
 ### Agent Configurations
 
@@ -75,11 +67,6 @@ uv run python main.py llm=qwen-3 agent=mirothinker_v1.5_keep5_max200 benchmark=g
 
 - `mirothinker_v1.0_keep5` (recommended) - context management, up to 600 turns
 - `mirothinker_v1.0` - no context management, up to 600 turns
-
-**General (for closed-source models like Claude, GPT-5):**
-
-- `single_agent_keep5` (recommended) - single agent with context management
-- `single_agent` - single agent without context management
 
 **Multi-Agent (Legacy for v0.1/v0.2):**
 
@@ -105,7 +92,7 @@ The agent will:
 |---------|----------|
 | API key errors | Check `.env` file has correct keys |
 | Model connection failed | Verify `llm.base_url` is accessible |
-| Tool execution errors | Check E2B/Serper/Jina API keys and quotas |
+| Tool execution errors | Check E2B/Gemini/Jina API keys and quotas |
 | Out of memory | Use `mirothinker_v1.5_keep5_max200` config |
 
 For detailed logs, check the `logs/` directory.

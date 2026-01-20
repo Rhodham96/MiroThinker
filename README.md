@@ -333,7 +333,7 @@ We have released the **MiroThinker v0.1** series, including both SFT and DPO var
 
 - 🐍 **Python 3.10+**
 - 📦 **uv package manager** ([Installation guide](https://github.com/astral-sh/uv))
-- 🔑 **Required API keys** (see configuration section below)
+- 🔑 **Required Credentials**: A Google Cloud Service Account JSON key (for Gemini)
 
 ### Installation
 
@@ -348,10 +348,10 @@ uv sync
 
 # Configure API keys
 cp .env.example .env
-# Edit .env with your API keys (SERPER_API_KEY, JINA_API_KEY, E2B_API_KEY, etc.)
+# Edit .env and set GOOGLE_APPLICATION_CREDENTIALS to your GCP Service Account JSON key path
 ```
 
-> **📝 Environment Variables**: See [Tool Configuration](#tool-configuration) section for required API keys.
+> **📝 Environment Variables**: See [Tool Configuration](#tool-configuration) section for required keys.
 
 ### Tool Configuration
 
@@ -360,7 +360,7 @@ cp .env.example .env
 | Server | Description | Tools Provided | Required Environment Variables |
 |:-------|:------------|:---------------|:-------------------------------|
 | **`tool-python`** | Execution environment and file management (E2B sandbox) | `create_sandbox`, `run_command`, `run_python_code`, `upload_file_from_local_to_sandbox`, `download_file_from_sandbox_to_local`, `download_file_from_internet_to_sandbox` | `E2B_API_KEY` |
-| **`search_and_scrape_webpage`** | Google search via Serper API (or Gemini Grounding) | `google_search` | `SERPER_API_KEY`, `SERPER_BASE_URL` (or `GOOGLE_APPLICATION_CREDENTIALS` for Gemini) |
+| **`search_and_scrape_webpage`** | Google Search (via Gemini Grounding) | `google_search` | `GOOGLE_APPLICATION_CREDENTIALS` |
 | **`jina_scrape_llm_summary`** | Web scraping with LLM-based information extraction | `scrape_and_extract_info` | `JINA_API_KEY`, `JINA_BASE_URL`, `SUMMARY_LLM_BASE_URL`, `SUMMARY_LLM_MODEL_NAME`, `SUMMARY_LLM_API_KEY` |
 
 **Minimal `.env` configuration example:**
@@ -368,41 +368,29 @@ cp .env.example .env
 ```bash
 # Required for MiroThinker v1.5 and v1.0 (minimal setup)
 
-# Option 1: Using Serper (Standard)
-SERPER_API_KEY=your_serper_key
-SERPER_BASE_URL="https://google.serper.dev"
-
-# Option 2: Using Gemini with Google Search Grounding (No Serper key needed)
-# Ensure you are using the 'gemini' provider and have GCP credentials
-GOOGLE_APPLICATION_CREDENTIALS="path/to/your/gcp_credentials.json"
-# OR
-GOOGLE_API_KEY="your_google_api_key"
+# Google Cloud Credentials (Required for Gemini Vision/Audio/Search Grounding)
+# Point this to your Service Account JSON key file
+GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-key.json"
 
 JINA_API_KEY=your_jina_key
 JINA_BASE_URL="https://r.jina.ai"
 E2B_API_KEY=your_e2b_key
 
 # Required for jina_scrape_llm_summary
-# Note: Summary LLM can be a small model (e.g., Qwen3-14B or GPT-5-Nano)
+# Note: Summary LLM can be a small model (e.g., Qwen3-14B)
 # The choice has minimal impact on performance, use what's most convenient
 SUMMARY_LLM_BASE_URL="https://your_summary_llm_base_url/v1/chat/completions"
-SUMMARY_LLM_MODEL_NAME=your_llm_model_name  # e.g., "Qwen/Qwen3-14B" or "gpt-5-nano"
+SUMMARY_LLM_MODEL_NAME=your_llm_model_name  # e.g., "Qwen/Qwen3-14B"
 SUMMARY_LLM_API_KEY=your_llm_api_key  # Optional, depends on LLM provider
-
-# Required for benchmark evaluation (LLM-as-a-Judge)
-OPENAI_API_KEY=your_openai_key  # Required for running benchmark evaluations
-OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional, defaults to OpenAI's API
 ```
 
-> **💡 Gemini Support**: To use **Google Gemini** as your primary model (replacing OpenAI/Anthropic), set your LLM provider to `gemini` in the config. This also enables **Google Search Grounding** automatically, removing the need for `SERPER_API_KEY`.
+> **💡 Gemini Integration**: This project uses **Google Gemini** (via GCP Service Account) as the primary engine for:
+> 1.  **Search Grounding**: Replacing external search APIs.
+> 2.  **Multimodal Understanding**: Handling Images, Audio, and Video inputs.
 >
-> **💡 Why this is minimal**: These 3 MCP servers cover the core capabilities needed for research tasks: web search, content extraction, and code execution. All other servers are optional enhancements.
+> **💡 Why this is minimal**: These 3 MCP servers cover the core capabilities needed for research tasks: web search (powered by Gemini), content extraction, and code execution. All other servers are optional enhancements.
 >
-> **🤖 Summary LLM**: The `SUMMARY_LLM` can be a small model like Qwen3-14B or GPT-5-Nano. The choice has minimal impact on overall performance, use whichever is most convenient for your setup.
->
-> **📊 For Benchmark Evaluation**: If you plan to run benchmark evaluations, you also need `OPENAI_API_KEY` (and optionally `OPENAI_BASE_URL`) for LLM-as-a-Judge functionality used in evaluation scripts.
->
-> **🖼️ For GAIA Multimodal Tasks**: GAIA-Val-165 includes tasks with image/audio/video files. Since MiroThinker is a text-only LLM, GPT-4o is used to pre-process these files into text descriptions. The same `OPENAI_API_KEY` is used for both this preprocessing and LLM-as-a-Judge.
+> **🤖 Summary LLM**: The `SUMMARY_LLM` can be a small model like Qwen3-14B. The choice has minimal impact on overall performance, use whichever is most convenient for your setup.
 >
 > **📖 For more details**: See [MiroFlow Tools README](libs/miroflow-tools/README.md) for complete documentation of all available tools.
 
@@ -413,17 +401,11 @@ The following optional tools are available but were not used in MiroThinker v1.5
 
 | Server Name          | Type         | Description                                 |
 |:---------------------|:-------------|:--------------------------------------------|
-| `tool-vqa`           | Commercial   | Vision processing using Claude              |
-| `tool-vqa-os`        | Open-Source  | Vision processing (open-source alternative) |
-| `tool-transcribe`    | Commercial   | Audio transcription using OpenAI            |
-| `tool-transcribe-os` | Open-Source  | Audio transcription using Whisper           |
-| `tool-reasoning`     | Commercial   | Reasoning engine using Claude               |
-| `tool-reasoning-os`  | Open-Source  | Reasoning engine (open-source alternative)  |
+| `tool-vqa`           | Gemini       | Vision processing using Gemini              |
+| `tool-transcribe`    | Gemini       | Audio transcription using Gemini            |
+| `tool-reasoning`     | Commercial   | Reasoning engine                            |
 | `tool-reading`       | Open-Source  | Document reading using MarkItDown           |
-| `tool-google-search` | Commercial   | Web search using Google + scraping          |
 | `tool-sogou-search` | Commercial   | Web search using Sogou (Chinese)           |
-
-> **📖 Local Deployment**: For instructions on deploying open-source tools (`tool-vqa-os`, `tool-transcribe-os`, `tool-reasoning-os`) locally, see [Local Tool Deployment Guide](assets/LOCAL-TOOL-DEPLOYMENT.md).
 
 See the [MiroFlow Tools README](libs/miroflow-tools/README.md) for complete documentation of all available tools.
 
@@ -431,27 +413,17 @@ See the [MiroFlow Tools README](libs/miroflow-tools/README.md) for complete docu
 
 #### Pre-configured Agent Settings
 
-The `apps/miroflow-agent/conf/agent/` directory contains several pre-configured agent settings. Each configuration uses different tools and requires corresponding environment variables in your `.env` file.
+The `apps/miroflow-agent/conf/agent/` directory contains several pre-configured agent settings.
 
 > **💡 Recommended**: For MiroThinker v1.5, use `mirothinker_v1.5_keep5_max200` (with context management, recommended for most tasks) or `mirothinker_v1.5_keep5_max400` (only used for BrowseComp and BrowseComp-ZH). For v1.0, use `mirothinker_v1.0_keep5` (with context management). All use minimal configuration with only 3 MCP servers.
 
 | Configuration                          | Description | Max Turns | Context Retention | Required Environment Variables                                                                                                                               | Recommended For |
 |:---------------------------------------|:------------|:----------|:------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------|
-| **`mirothinker_v1.5_keep5_max200`** ⭐  | Single-agent with context management | 200 | Keep 5 most recent | `SERPER_API_KEY`, `SERPER_BASE_URL`, `JINA_API_KEY`, `JINA_BASE_URL`, `E2B_API_KEY`, `SUMMARY_LLM_BASE_URL`, `SUMMARY_LLM_MODEL_NAME`, `SUMMARY_LLM_API_KEY` | **v1.5 (recommended for most tasks)** |
+| **`mirothinker_v1.5_keep5_max200`** ⭐  | Single-agent with context management | 200 | Keep 5 most recent | `GOOGLE_APPLICATION_CREDENTIALS`, `JINA_API_KEY`, `JINA_BASE_URL`, `E2B_API_KEY`, `SUMMARY_LLM_BASE_URL`, `SUMMARY_LLM_MODEL_NAME`, `SUMMARY_LLM_API_KEY` | **v1.5 (recommended for most tasks)** |
 | **`mirothinker_v1.5_keep5_max400`** ⭐  | Single-agent with context management | 400 | Keep 5 most recent | Same as above                                                                                                                              | **v1.5 (for BrowseComp & BrowseComp-ZH)** |
 | **`mirothinker_v1.5`**                 | Single-agent for MiroThinker v1.5 | 600 | Keep all results | Same as above | **v1.5** |
 | **`mirothinker_v1.0_keep5`**           | Single-agent with context management | 600 | Keep 5 most recent | Same as above                                                                                                                                   | **v1.0** |
 | **`mirothinker_v1.0`**                 | Single-agent for MiroThinker v1.0 | 600 | Keep all results | Same as above | **v1.0** |
-
-<details>
-  <summary>📦 Click to expand legacy configurations (v0.1/v0.2)</summary>
-
-| Configuration            | Description | Max Turns | Context Retention | Required Environment Variables | Recommended For |
-|:-------------------------|:------------|:----------|:------------------|:-------------------------------|:----------------|
-| **`multi_agent`**        | Multi-agent with commercial tools (v0.1/v0.2) | 50 | Keep all results | `E2B_API_KEY`, `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `SERPER_API_KEY`, `SERPER_BASE_URL`, `JINA_API_KEY`, `JINA_BASE_URL` | v0.1/v0.2 |
-| **`multi_agent_os`**     | Multi-agent with open-source tools (v0.1/v0.2) | 50 | Keep all results | `E2B_API_KEY`, `VISION_API_KEY`, `VISION_BASE_URL`, `VISION_MODEL_NAME`, `WHISPER_API_KEY`, `WHISPER_BASE_URL`, `WHISPER_MODEL_NAME`, `REASONING_API_KEY`, `REASONING_BASE_URL`, `REASONING_MODEL_NAME`, `SERPER_API_KEY`, `SERPER_BASE_URL`, `JINA_API_KEY`, `JINA_BASE_URL` | v0.1/v0.2 |
-
-</details>
 
 > **💡 Note**: All environment variables are listed in `apps/miroflow-agent/.env.example`. Copy it to `.env` and fill in the values for the tools you plan to use.
 
@@ -473,10 +445,10 @@ defaults:
 main_agent:
   tools:
     - tool-python                    # Execution environment
-    - search_and_scrape_webpage      # Google search
+    - search_and_scrape_webpage      # Google search (Gemini Grounding)
     - jina_scrape_llm_summary        # Web scraping with LLM
-    - tool-vqa                       # Vision processing (optional)
-    - tool-transcribe                # Audio processing (optional)
+    - tool-vqa                       # Vision processing (Gemini)
+    - tool-transcribe                # Audio processing (Gemini)
     - tool-reasoning                 # Reasoning engine (optional)
     - tool-reading                   # Document reading (optional)
   max_turns: 400  # Maximum number of turns
@@ -531,10 +503,6 @@ uv run main.py llm=qwen-3 agent=my_custom_config llm.base_url=https://your_base_
   <summary>🔑 Click to expand optional API keys</summary>
 
 ```bash
-# API for LLM-as-a-Judge (for benchmark testing, required for benchmark evaluation)
-OPENAI_API_KEY=your_openai_key
-OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional, defaults to OpenAI's API
-
 # API for Open-Source Audio Transcription Tool (for benchmark testing, optional)
 WHISPER_MODEL_NAME="openai/whisper-large-v3-turbo"
 WHISPER_API_KEY=your_whisper_key
@@ -550,16 +518,13 @@ REASONING_MODEL_NAME="Qwen/Qwen3-235B-A22B-Thinking-2507"
 REASONING_API_KEY=your_reasoning_key
 REASONING_BASE_URL="https://your_reasoning_base_url/v1/chat/completions"
 
-# API for Claude Sonnet 3.7 as Commercial Tools (optional)
-ANTHROPIC_API_KEY=your_anthropic_key
-
 # API for Sogou Search (optional)
 TENCENTCLOUD_SECRET_ID=your_tencent_cloud_secret_id
 TENCENTCLOUD_SECRET_KEY=your_tencent_cloud_secret_key
 
-# API for Summary LLM (can use small models like Qwen3-14B or GPT-5-Nano)
+# API for Summary LLM (can use small models like Qwen3-14B)
 SUMMARY_LLM_BASE_URL="https://your_summary_llm_base_url/v1/chat/completions"
-SUMMARY_LLM_MODEL_NAME=your_summary_llm_model_name  # e.g., "Qwen/Qwen3-14B" or "gpt-5-nano"
+SUMMARY_LLM_MODEL_NAME=your_summary_llm_model_name  # e.g., "Qwen/Qwen3-14B"
 SUMMARY_LLM_API_KEY=your_summary_llm_api_key
 ```
 
@@ -607,12 +572,6 @@ cd apps/miroflow-agent
 
 # Using MiroThinker agents (requires your own server)
 uv run python main.py llm=qwen-3 agent=mirothinker_v1.5_keep5_max200 llm.base_url=http://localhost:61002/v1
-
-# Or using Claude (requires ANTHROPIC_API_KEY in .env)
-uv run python main.py llm=claude-3-7 agent=single_agent_keep5
-
-# Or using GPT-5 (requires OPENAI_API_KEY in .env)
-uv run python main.py llm=gpt-5 agent=single_agent_keep5
 ```
 
 **To customize your question**, edit `main.py` line 32:
@@ -652,7 +611,7 @@ You can customize the evaluation by setting the following environment variables 
 | `LLM_AGENT` | `"MiroThinker-Agents"` | Agent name identifier |
 | `BASE_URL` | `"https://your-api.com/v1"` | Base URL of your server |
 | `NUM_RUNS` | Varies by benchmark | Number of evaluation runs (3 for most benchmarks, 8 for GAIA/XBench/FutureX/SEAL-0, 32 for AIME2025) |
-| `LLM_PROVIDER` | `"qwen"` | LLM provider (e.g., `qwen`, `openai`, `anthropic`) |
+| `LLM_PROVIDER` | `"qwen"` | LLM provider (e.g., `qwen`) |
 | `AGENT_SET` | `"mirothinker_v1.5_keep5_max200"` | Agent configuration (e.g., `mirothinker_v1.5_keep5_max200`, `mirothinker_v1.5_keep5_max400`, `mirothinker_v1.0_keep5`) |
 | `MAX_CONTEXT_LENGTH` | `262144` | Maximum context length (256K) |
 | `MAX_CONCURRENT` | `10` | Maximum concurrent tasks |
@@ -803,10 +762,6 @@ python benchmarks/check_progress/check_progress_deepsearchqa.py /path/to/evaluat
 ```bash
 cd apps/collect-trace
 
-# Collect Traces for SFT
-bash scripts/collect_trace_claude37.sh
-bash scripts/collect_trace_gpt5.sh
-
 # Collect Traces for DPO
 bash scripts/collect_trace_qwen3.sh
 ```
@@ -832,12 +787,10 @@ bash scripts/collect_trace_qwen3.sh
 
 **A:** You need these keys for minimal setup:
 
-- **SERPER_API_KEY**: Get from [Serper.dev](https://serper.dev/) (Google search API)
-- **JINA_API_KEY**: Get from [Jina.ai](https://jina.ai/) (Web scraping)
-- **E2B_API_KEY**: Get from [E2B.dev](https://e2b.dev/) (Code execution sandbox)
-- **SUMMARY_LLM_API_KEY**: Your LLM API credentials (for content summarization). Can be a small model like Qwen3-14B or GPT-5-Nano—the choice has minimal impact on performance.
-- **OPENAI_API_KEY**: Get from [OpenAI](https://platform.openai.com/) (Required for benchmark evaluation, used for LLM-as-a-Judge)
-- **OPENAI_BASE_URL**: Optional, defaults to `https://api.openai.com/v1`. Can be changed to use OpenAI-compatible APIs.
+- **GOOGLE_APPLICATION_CREDENTIALS**: Path to your GCP Service Account JSON key (for Gemini/Search).
+- **JINA_API_KEY**: Get from [Jina.ai](https://jina.ai/) (Web scraping).
+- **E2B_API_KEY**: Get from [E2B.dev](https://e2b.dev/) (Code execution sandbox).
+- **SUMMARY_LLM_API_KEY**: Your LLM API credentials (for content summarization).
 
 #### **Q: Agent server connection errors**
 
@@ -876,7 +829,7 @@ bash scripts/collect_trace_qwen3.sh
 **A:** Common fixes:
 
 - **E2B errors**: Verify `E2B_API_KEY` is valid and account has credits
-- **Serper errors**: Check `SERPER_API_KEY` and rate limits
+- **Gemini errors**: Verify `GOOGLE_APPLICATION_CREDENTIALS` points to a valid JSON file and the service account has Vertex AI User permissions.
 - **Jina errors**: Verify `JINA_API_KEY` and `JINA_BASE_URL` are correct
 - **LLM summarization errors**: Check `SUMMARY_LLM_*` variables and agent availability
 
